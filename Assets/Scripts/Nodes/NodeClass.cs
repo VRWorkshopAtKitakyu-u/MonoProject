@@ -26,6 +26,7 @@ public class NodeClass : MonoBehaviour{
     private NodeClass tempNodeClass = null;
 
     // 導通(Continuity,コンティニュイティ)テスト
+    // 通電して大丈夫かを確認する関数ではない
     // 繋がっていれば，後ろに続くノードの配列を返す
     // 若干再帰的な処理になる…？
     /* 引数
@@ -127,6 +128,9 @@ public class NodeClass : MonoBehaviour{
     public bool CheckExistNodeInNextNodeList(GameObject _node_Object){
         return this.nextNodeList.Contains(_node_Object);
     }
+
+    // --------------------------------------
+    // ログ生成関連
 
     // ログを生成
     protected void outputLog(string msg){
