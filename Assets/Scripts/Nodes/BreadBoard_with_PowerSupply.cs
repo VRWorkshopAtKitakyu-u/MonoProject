@@ -5,8 +5,10 @@ using System;
 
 public class BreadBoard_with_PowerSupply : MonoBehaviour{
     // 配置用オブジェクトの配列
+    // 各種NodeはこいつらSlotオブジェクトの子になってないといけない
+    // あとSlotとNodeは1-1の関係じゃないとダメ 死ぬ
     [SerializeField]
-    protected GameObject[] baseGameObjectArray = {};
+    protected GameObject[] SlotGameObjectArray = {};
 
     // 素子用オブジェクトの配列
     protected GameObject[] NodeGameObjecetArray = {};
@@ -19,16 +21,16 @@ public class BreadBoard_with_PowerSupply : MonoBehaviour{
     public bool runContinuityTest(){
         outputLog("runContinuityTest() : started");
         // そもそもスロットが配置用オブジェクトが空なら動作させない
-        if(baseGameObjectArray.Length == 0){
+        if(SlotGameObjectArray.Length == 0){
             return false;
         }
 
         // 素子用オブジェクトの配列を作成
-        NodeGameObjecetArray = new GameObject[baseGameObjectArray.Length];
+        NodeGameObjecetArray = new GameObject[SlotGameObjectArray.Length];
         //  作るときに，数/NodeClass不足なら弾く なんならreturn falseする
-        for(int num = 0; num < baseGameObjectArray.Length; num++){
-            // 子オブジェクトを取得
-            GameObject NodeGameObject = baseGameObjectArray[num].transform.GetChild(0).gameObject;
+        for(int num = 0; num < SlotGameObjectArray.Length; num++){
+            // 孫(子の子)オブジェクトを取得
+            GameObject NodeGameObject = SlotGameObjectArray[num].transform.GetChild(0).gameObject.transform.GetChild(0).gameObject;
 
             // 数不足なら弾く
             if(NodeGameObject == null){
@@ -50,7 +52,7 @@ public class BreadBoard_with_PowerSupply : MonoBehaviour{
 
     // とりあえずそのまま返すだけ
     public GameObject[] getBaseGameObjectArray(){
-        return baseGameObjectArray;
+        return SlotGameObjectArray;
     }
 
     // チェッカー
@@ -60,7 +62,7 @@ public class BreadBoard_with_PowerSupply : MonoBehaviour{
             return false;
         }
 
-        if(Array.IndexOf(baseGameObjectArray, add_Object) != -1){
+        if(Array.IndexOf(SlotGameObjectArray, add_Object) != -1){
             return true;
         }else{
             return false;
