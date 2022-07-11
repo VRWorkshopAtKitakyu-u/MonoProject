@@ -2,7 +2,12 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+
 public class NodeClass : MonoBehaviour{
+    // このスクリプトがアタッチされたオブジェクトに OVRGrabbable コンポーネントが存在することを要求する
+    // OVRGrabbable 自体が rigidbody と ~Collider を要求するから，この2つは改めて要求しないが，今後することになるかもしれない
+    [RequireComponent(typeof(OVRGrabbable))]
+
     /* ノードタイプ
     | node = "Node"
     | 電源 = "PowerSupply"
@@ -15,6 +20,15 @@ public class NodeClass : MonoBehaviour{
 
     // ノードタイプのリスト
     private List<string> nodeTypeList = new List<string>{"Node", "PowerSupply", "Resistance", "LED", "PIC"};
+
+    // Slot Objectにいるか
+    private bool isSloted = false;
+
+    // TODO: tag:Slotにくっついたときにその子オブジェクトになる処理を書く
+    private void OnCollisionEnter(Collision other) {
+        // ここ
+    }
+    // TOOD: 離れたときの処理も書く
 
 /*****************************
     getter / setter その他
