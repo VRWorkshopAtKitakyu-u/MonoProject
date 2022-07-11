@@ -27,6 +27,32 @@ public class NodeClass : MonoBehaviour{
     // TODO: tag:Slotにくっついたときにその子オブジェクトになる処理を書く
     private void OnCollisionEnter(Collision other) {
         // ここ
+        // Colliderからgameobjectを取り出す
+        GameObject Slot_Object = other.gameObject;
+
+        GameObject Child_Object = Slot_Object.transform.GetChild(0).gameObject;
+        if(Child_Object == null){
+            break;
+        }
+
+        // OVRGrabbableの呼び出しで Grab を解除する
+        OVRGrabbable object_Grabbable_component;
+        if(this.gameObject.TryGetComponent(out object_Grabbable_component) == false){
+            break;
+        }
+        OVRGrabber object_grabbedBy_component = object_Grabbable_component.grabbedBy();
+        object_grabbedBy_component.ForceRelease; // ここで解除
+
+
+        // 子オブジェクトへ
+        this.gameObject.parent = Child_Object;
+
+        // 座標角度をあわせる
+        this.gameObject.transform.position = Child_Object.transform.position;
+        this.gameObject.transform.rotation = Child_Object.transform.rotation;
+
+        // Slotに配置されているフラグを立てとく
+        this.isSloted = true;
     }
     // TOOD: 離れたときの処理も書く
 
