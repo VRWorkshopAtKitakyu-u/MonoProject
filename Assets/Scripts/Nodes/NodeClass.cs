@@ -1,17 +1,15 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-
+// このスクリプトがアタッチされたオブジェクトに OVRGrabbable コンポーネントが存在することを要求する
+// OVRGrabbable 自体が rigidbody と ~Collider を要求するから，この2つは改めて要求しないが，今後することになるかもしれない
+[RequireComponent(typeof(OVRGrabbable))]
 
 public class NodeClass : MonoBehaviour{
-    // このスクリプトがアタッチされたオブジェクトに OVRGrabbable コンポーネントが存在することを要求する
-    // OVRGrabbable 自体が rigidbody と ~Collider を要求するから，この2つは改めて要求しないが，今後することになるかもしれない
-    [RequireComponent(typeof(OVRGrabbable))]
-
     /* ノードタイプ
     | node = "Node"
     | 電源 = "PowerSupply"
-    | 抵抗 = "Resistance"
+    | 抵抗 = "Resistor"
     | LED  = "LED"
     | PIC  = "PIC"
     */
@@ -19,42 +17,62 @@ public class NodeClass : MonoBehaviour{
     private string nodeType = "Node";
 
     // ノードタイプのリスト
-    private List<string> nodeTypeList = new List<string>{"Node", "PowerSupply", "Resistance", "LED", "PIC"};
+    private List<string> nodeTypeList = new List<string>{"Node", "PowerSupply", "Resistor", "LED", "PIC"};
+
+    // 必要とするノードタイプのリスト
+    private List<string> need_nodeList = new List<string>{};
 
     // Slot Objectにいるか
-    private bool isSloted = false;
+    //private bool isSloted = false;
+    [SerializeField]
+    private OVRGrabbable ovrGrabbable_component = null;
 
-    // TODO: tag:Slotにくっついたときにその子オブジェクトになる処理を書く
-    private void OnCollisionEnter(Collision other) {
-        // ここ
-        // Colliderからgameobjectを取り出す
-        GameObject Slot_Object = other.gameObject;
+    //private Collision contacted_SlotObject = null;
 
-        GameObject Child_Object = Slot_Object.transform.GetChild(0).gameObject;
-        if(Child_Object == null){
-            break;
+    private Rigidbody rigidbody_component = null;
+
+    protected virtual void Start(){
+        if(this.gameObject.TryGetComponent(out this.ovrGrabbable_component) != true){
+            outputError("this object shold have \"OVRGrabbable\".");
+            return;
         }
 
-        // OVRGrabbableの呼び出しで Grab を解除する
-        OVRGrabbable object_Grabbable_component;
-        if(this.gameObject.TryGetComponent(out object_Grabbable_component) == false){
-            break;
+        if(this.gameObject.TryGetComponent(out this.rigidbody_component) != true){
+            outputError("this object shold have\"Rigidbody\"");
+            return;
         }
-        OVRGrabber object_grabbedBy_component = object_Grabbable_component.grabbedBy();
-        object_grabbedBy_component.ForceRelease; // ここで解除
-
-
-        // 子オブジェクトへ
-        this.gameObject.parent = Child_Object;
-
-        // 座標角度をあわせる
-        this.gameObject.transform.position = Child_Object.transform.position;
-        this.gameObject.transform.rotation = Child_Object.transform.rotation;
-
-        // Slotに配置されているフラグを立てとく
-        this.isSloted = true;
     }
-    // TOOD: 離れたときの処理も書く
+
+    protected virtual void Update(){
+        if(this.ovrGrabbable_component.isGrabbed == true){
+            this.gameObject.transform.parent = null;
+            //this.rigidbody_component.isKinematic = false;
+        }
+    }
+
+    protected virtual void OnCollisionStay(Collision other){
+        if(this.ovrGrabbable_component.isGrabbed != false){
+            return;
+        }
+        if(other.gameObject.tag == "Slot"){
+            if(FindChildWithTag(other.gameObject, "Node") == null){
+                this.gameObject.transform.parent = other.gameObject.transform;
+                this.rigidbody_component.isKinematic = true;
+                this.gameObject.transform.position = other.gameObject.transform.position;
+                this.gameObject.transform.rotation = other.gameObject.transform.rotation;
+            }
+        }
+    }
+
+    public virtual void runNode(){
+        // 各継承先でオーバーライドしてね
+        outputLog("You called NodeClass.runNode().");
+    }
+
+    public virtual void endNode(){
+        // 各継承先でオーバーライドしてね
+        outputLog("You called NodeClass.endNode().");
+    }
 
 /*****************************
     getter / setter その他
@@ -72,6 +90,7 @@ public class NodeClass : MonoBehaviour{
             this.nodeType = _newNodeType;
             return true;
         }else{
+            outputError(_newNodeType + " is not NodeType.");
             return false;
         }
     }
@@ -82,21 +101,52 @@ public class NodeClass : MonoBehaviour{
         return this.nodeTypeList.Contains(_newNodeType);
     }
 
+    // 必要なノードタイプの追加
+    protected void addNeedNodeType(List<string> _newNodeType_list){
+        foreach(string _newNodeType in _newNodeType_list){
+            if(this.need_nodeList.Contains(_newNodeType) == false){
+                this.need_nodeList.Add(_newNodeType);
+            }
+        }
+    }
+
+    public List<string> getNeedNodeTypeList(){
+        return need_nodeList;
+    }
+
+    // 引数のオブジェクトの子オブジェクト(直下のみ)の中から，指定したタグを持つオブジェクトを返す
+    // 無かったらnullを返す
+    // return "object" if exist object had tag, "null" otherwise
+    public GameObject FindChildWithTag(GameObject _parent_Object, string _tag){
+        int child_count = _parent_Object.transform.childCount;
+        if(child_count == 0){
+            return null;
+        }
+
+        for(int i = 0; i < child_count; i++){
+            GameObject child_Object =  _parent_Object.transform.GetChild(i).gameObject;
+            if(child_Object.tag == _tag){
+                return child_Object;
+            }
+        }
+        return null;
+    }
+
     // --------------------------------------
     // ログ生成関連
 
     // ログを生成
-    protected void outputLog(string msg){
-        Debug.Log(this.name + ":" + msg);
+    protected void outputLog(string _msg){
+        Debug.Log(this.name + ":" + _msg);
     }
 
     // エラーログを生成
-    protected void outputError(string msg){
-        Debug.LogError(this.name + ":" + msg);
+    protected void outputError(string _msg){
+        Debug.LogError(this.name + ":" + _msg);
     }
 
     // ワーニングログを生成
-    protected void outputWarning(string msg){
-        Debug.LogWarning(this.name + ":" + msg);
+    protected void outputWarning(string _msg){
+        Debug.LogWarning(this.name + ":" + _msg);
     }
 }

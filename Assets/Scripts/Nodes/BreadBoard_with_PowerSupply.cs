@@ -13,12 +13,32 @@ public class BreadBoard_with_PowerSupply : MonoBehaviour{
     // 素子用オブジェクトの配列
     protected GameObject[] NodeGameObjectArray = {};
 
+    // スロットに設置されたノードのタイプ一覧
+    [SerializeField]
+    protected List<string> NodeTypeInSlotList = new List<string>{};
+
+    private bool tempFlag= false;
+
+    protected void Update(){
+        if(OVRInput.GetDown(OVRInput.RawButton.RIndexTrigger) == true && tempFlag == false){
+            // 一回動作させてみよう
+            if(runContinuityTest()){
+                runAllNode();
+            }
+            tempFlag = true;
+        }else{
+            tempFlag = false;
+        }
+    }
+
     // 導通チェック起点関数
     /* 返り値
     |   導通 : true
     | 非導通 : false
     */
     public bool runContinuityTest(){
+        // 回路認識
+
         outputLog("runContinuityTest() : started");
         // そもそもスロットが配置用オブジェクトが空なら動作させない
         if(SlotGameObjectArray.Length == 0){
@@ -27,6 +47,7 @@ public class BreadBoard_with_PowerSupply : MonoBehaviour{
 
         // 素子用オブジェクトの配列を作成
         NodeGameObjectArray = new GameObject[SlotGameObjectArray.Length];
+
         //  作るときに，数/NodeClass不足なら弾く なんならreturn falseする
         for(int num = 0; num < SlotGameObjectArray.Length; num++){
             // SlotオブジェクトArrayにtag:Slotのオブジェクトが入ってるかを確認
@@ -38,22 +59,13 @@ public class BreadBoard_with_PowerSupply : MonoBehaviour{
                 continue;
             }
 
-            // 子のオブジェクトを取得
-            GameObject ChildGameObject = SlotGameObject.transform.GetChild(0).gameObject;
+            // tag: Nodeを持つ子のオブジェクトを取得
+            GameObject NodeGameObject = FindChildWithTag(SlotGameObject, "Node");
             // 子のオブジェクトが空
-            if(ChildGameObject == null){
+            if(NodeGameObject == null){
                 // gameObjectは子オブジェクトを持たなければならない
                 outputWarning("SlotGameObjectArray["+num+"].gameObject should has child GameObject.");
                 continue;
-            }
-
-            // 孫のオブジェクトを子のオブジェクトから取得
-            // NodeObjectがなければ弾く
-            GameObject NodeGameObject = ChildGameObject.transform.GetChild(0).gameObject;
-            if(NodeGameObject == null){
-                // NodeObjectがいなければならない
-                outputWarning("GameObject in SlotGameObjectArray["+num+"].gameObject should has Node GameObject.");
-                return false;
             }
 
             // NodeClassが無いなら弾く
@@ -61,19 +73,66 @@ public class BreadBoard_with_PowerSupply : MonoBehaviour{
                 return false;
             }
 
+            // 追加
             NodeGameObjectArray[num] = NodeGameObject;
+
+            // ノードタイプ一覧への追加
+            if(NodeGameObject.TryGetComponent(out NodeClass nc2) == true){
+                if(this.NodeTypeInSlotList.Contains(nc2.getNodeType()) == false){
+                    this.NodeTypeInSlotList.Add(nc2.getNodeType());
+                }
+            }
         }
 
         // 最終チェック
         // NodeGameObjectArray に null Object が存在しないことを確認して，その結果を返す
         if(Array.IndexOf(NodeGameObjectArray, null) == -1){
+            outputLog("return 0");
             return true;
         }else{
             return false;
         }
+    }
 
-        // 一応残しておくが，多分消す
-        return false;
+    // 必要なノードタイプが揃ってるか確認して，
+    // 全Slot内のNodeObjectのrun関数を叩く
+    public void runAllNode(){
+        outputLog("runAllNode() start");
+        foreach(string nodeType in this.NodeTypeInSlotList){
+            switch(nodeType){
+                case "LED":
+                    if(this.NodeTypeInSlotList.Contains("Resistor")==false){
+                        outputError("this circuit need \"Resistor\" Node.");
+                        return;
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+        foreach (GameObject nodeGameObject in this.NodeGameObjectArray){
+            if(nodeGameObject.TryGetComponent(out NodeClass nc) == true){
+                nc.runNode();
+            }
+        }
+    }
+
+    // 引数のオブジェクトの子オブジェクト(直下のみ)の中から，指定したタグを持つオブジェクトを返す
+    // 無かったらnullを返す
+    // return "object" if exist object had tag, "null" otherwise
+    public GameObject FindChildWithTag(GameObject _parent_Object, string _tag){
+        int child_count = _parent_Object.transform.childCount;
+        if(child_count == 0){
+            return null;
+        }
+
+        for(int i = 0; i < child_count; i++){
+            GameObject child_Object =  _parent_Object.transform.GetChild(i).gameObject;
+            if(child_Object.tag == _tag){
+                return child_Object;
+            }
+        }
+        return null;
     }
 
     // -------------
