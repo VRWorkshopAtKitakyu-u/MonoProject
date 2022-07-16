@@ -35,6 +35,7 @@ public class LEDNode : NodeClass{
         if(shineColor == null){
             outputError("Material is not attached to value \"shineColor\"");
         }
+        light_object_renderer.material = darkColor;
     }
 
     protected override void Update(){
